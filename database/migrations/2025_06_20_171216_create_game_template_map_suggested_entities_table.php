@@ -4,8 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     /**
      * Run the migrations.
      */
@@ -15,10 +14,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('game_template_id')->constrained()->cascadeOnDelete();
             $table->foreignId('map_id')->constrained()->cascadeOnDelete(); // Карта, к которой относится это предложение
-
-            // Полиморфная связь с прототипами Npc или Item
-            $table->morphs('suggestable');
-
+            $table->morphs('suggestable'); // Полиморфная связь с прототипами Npc или Item
             $table->text('notes')->nullable(); // Заметки для ДМа (например, "Этот гоблин охраняет рычаг")
 
             $table->timestamps();
