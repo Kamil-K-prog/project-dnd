@@ -36,10 +36,19 @@ class RegisteredUserController extends Controller
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
+        /* --- Генерация уникального кода дружбы --- */
+        while (true){
+            $friendCode = \Str::random(8);
+            if (User::where('friend_code', 'LIKE', $friendCode)->count() === 0){
+                break;
+            }
+        }
+
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'friend_code' => $friendCode, // Добавлено мной
         ]);
 
         event(new Registered($user));
