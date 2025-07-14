@@ -9,6 +9,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rules;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -37,12 +38,9 @@ class RegisteredUserController extends Controller
         ]);
 
         /* --- Генерация уникального кода дружбы --- */
-        while (true){
-            $friendCode = \Str::random(8);
-            if (User::where('friend_code', 'LIKE', $friendCode)->count() === 0){
-                break;
-            }
-        }
+        do {
+            $friendCode = strtoupper(Str::random(8));
+        } while (User::where('friend_code', $friendCode)->exists());
 
         $user = User::create([
             'name' => $request->name,
