@@ -3,8 +3,10 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -57,5 +59,26 @@ class User extends Authenticatable
     public function friends(): BelongsToMany
     {
         return $this->belongsToMany(__CLASS__, 'friend_users', 'user_id', 'friend_id');
+    }
+
+
+    // Входящие запросы (где я - получатель)
+    public function incomingFriendRequests(): HasMany
+    {
+        return $this->hasMany(FriendRequestModel::class, 'recipient_id');
+    }
+
+    // Исходящие запросы (где я - отправитель)
+    public function outgoingFriendRequests(): HasMany
+    {
+        return $this->hasMany(FriendRequestModel::class, 'sender_id');
+    }
+
+    // Все запросы в друзья (и отправитель, и получатель)
+    public function allFriendshipRequests(): Builder // Возвращает построитель запросов
+    {
+        return FriendRequestModel::query()
+            ->where('sender_id', $this->id)
+            ->orWhere('recipient_id', $this->id);
     }
 }

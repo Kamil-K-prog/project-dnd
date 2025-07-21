@@ -5,7 +5,7 @@ namespace App\Http\Resources;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class UserResource extends JsonResource
+class FriendRequestResource extends JsonResource
 {
     /**
      * Transform the resource into an array.
@@ -16,10 +16,9 @@ class UserResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'name' => $this->name,
-            'email' => $this->when($this->id === auth()->id(), $this->email), // Отдаём только самому пользователю
-            'friend_code' => $this->when($this->id === auth()->id(), $this->friend_code),
-            'friends' => self::collection($this->whenLoaded('friends')),
+            'status' => $this->status,
+            'sender' => new UserResource($this->whenLoaded('sender')),
+            'recipient' => new UserResource($this->whenLoaded('recipient')),
             'created_at' => $this->created_at,
         ];
     }
