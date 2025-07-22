@@ -40,4 +40,5 @@ class FriendRequestTest extends TestCase
         $response->assertJsonPath('data.0.sender.id', $anotherUser->id);
         $response->assertJsonPath('data.0.recipient.id', $user->id);
     }
+
 }

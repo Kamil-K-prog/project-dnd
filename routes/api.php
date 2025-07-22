@@ -11,6 +11,7 @@ Route::namespace('App\Http\Controllers\API')->middleware('auth:sanctum')->as('ap
                 ->as('requests.')
                 ->group(function () {
                     Route::get('/', IndexController::class)->name('index');
+                    Route::post('/', StoreController::class)->name('store');
                 });
         });
 

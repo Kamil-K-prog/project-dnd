@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Enums\FriendRequestStatus;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -80,5 +81,26 @@ class User extends Authenticatable
         return FriendRequestModel::query()
             ->where('sender_id', $this->id)
             ->orWhere('recipient_id', $this->id);
+    }
+
+    // Имеет дружбу с конкретным пользователем
+    public function isFriendsWith(User $anotherUser): bool
+    {
+        return $this->friends()->where('users.id', $anotherUser->id)->exists();
+    }
+
+    public function hasPendingRequestWith(User $anotherUser): bool
+    {
+        // Ищем один существующий запрос со статусом 'pending' В ЛЮБОМ НАПРАВЛЕНИИ.
+        return FriendRequestModel::where('status', FriendRequestStatus::Pending)
+            ->where(function ($query) use ($anotherUser) {
+                $query->where('sender_id', $this->id)
+                    ->where('recipient_id', $anotherUser->id);
+            })
+            ->orWhere(function ($query) use ($anotherUser) {
+                $query->where('sender_id', $anotherUser->id)
+                    ->where('recipient_id', $this->id);
+            })
+            ->exists();
     }
 }
