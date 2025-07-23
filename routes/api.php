@@ -12,6 +12,7 @@ Route::namespace('App\Http\Controllers\API')->middleware('auth:sanctum')->as('ap
                 ->group(function () {
                     Route::get('/', IndexController::class)->name('index');
                     Route::post('/', StoreController::class)->name('store');
+                    Route::post('/{friendRequest}/accept', AcceptController::class)->name('accept');
                 });
         });
 
