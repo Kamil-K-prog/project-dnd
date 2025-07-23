@@ -76,11 +76,16 @@ class User extends Authenticatable
     }
 
     // Все запросы в друзья (и отправитель, и получатель)
-    public function allFriendshipRequests(): Builder // Возвращает построитель запросов
+    public function allFriendshipRequests(): Builder
     {
         return FriendRequestModel::query()
-            ->where('sender_id', $this->id)
-            ->orWhere('recipient_id', $this->id);
+            // 1. Сначала выбираем только запросы со статусом Pending
+            ->where('status', FriendRequestStatus::Pending)
+            // 2. Затем, внутри этой группы, ищем те, где текущий пользователь является либо отправителем, либо получателем.
+            ->where(function (Builder $query) {
+                $query->where('sender_id', $this->id)
+                    ->orWhere('recipient_id', $this->id);
+            });
     }
 
     // Имеет дружбу с конкретным пользователем
