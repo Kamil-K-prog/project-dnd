@@ -34,7 +34,6 @@ class StoreFriendRequest extends FormRequest
      */
     public function rules(): array
     {
-        $currentUser = $this->user();
         return [
             'friend_code' => [
                 'bail',
