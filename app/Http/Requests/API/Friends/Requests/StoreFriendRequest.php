@@ -43,8 +43,8 @@ class StoreFriendRequest extends FormRequest
                 'size:8',
                 Rule::exists('users', 'friend_code'),
                 new NotSelf(),
-                new NotAlreadyFriends(),
-                new NoPendingFriendRequest(),
+                new NotAlreadyFriends($this->recipient),
+                new NoPendingFriendRequest($this->recipient),
             ]
         ];
     }

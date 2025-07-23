@@ -8,6 +8,13 @@ use Illuminate\Contracts\Validation\ValidationRule;
 
 class NoPendingFriendRequest implements ValidationRule
 {
+    protected ?User $recipient;
+
+    public function __construct(?User $recipient)
+    {
+        $this->recipient = $recipient;
+    }
+
     /**
      * Run the validation rule.
      *
@@ -15,7 +22,7 @@ class NoPendingFriendRequest implements ValidationRule
      */
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
-        if (auth()->user()->hasPendingRequestWith(User::where('friend_code', $value)->first())){
+        if (auth()->user()->hasPendingRequestWith($this->recipient)){
             $fail("У вас уже есть активный запрос в друзья с этим пользователем.");
         }
     }
