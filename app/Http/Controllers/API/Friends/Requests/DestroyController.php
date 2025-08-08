@@ -20,10 +20,7 @@ class DestroyController extends Controller
         $friendRequest->status = FriendRequestStatus::Cancelled;
         $friendRequest->save();
 
-        // 2. Подгружаем связи
-        $friendRequest->load(['sender', 'recipient']);
-
-        // 3. Отдаём ресурс
-        return new FriendRequestResource($friendRequest);
+        // 2. Отдаём HTTP 204 "No Content"
+        return response()->noContent();
     }
 }

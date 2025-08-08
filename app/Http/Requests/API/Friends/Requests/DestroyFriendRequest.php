@@ -15,7 +15,7 @@ class DestroyFriendRequest extends FormRequest
         $friendRequest = $this->route('friendRequest');
 
         return $friendRequest
-            && $friendRequest->sender_id === auth()->id
+            && $friendRequest->sender_id === auth()->id()
             && $friendRequest->status === FriendRequestStatus::Pending;
     }
 

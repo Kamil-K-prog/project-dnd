@@ -14,7 +14,7 @@ class DeclineFriendRequest extends FormRequest
     {
         $friendRequest = $this->route('friendRequest');
         return $friendRequest
-            && $friendRequest->recipient_id === auth()->id
+            && $friendRequest->recipient_id === auth()->id()
             && $friendRequest->status === FriendRequestStatus::Pending;
     }
 
