@@ -8,6 +8,11 @@ Route::namespace('App\Http\Controllers\API')->middleware('auth:sanctum')->as('ap
         ->as('friends.')
         ->group(function () {
 
+            // Управление списком друзей
+            Route::get('/', IndexController::class)->name('index');
+            Route::delete('/{user}', DestroyController::class)->name('destroy');
+
+
             // Запросы в друзья
             Route::namespace('Requests')
                 ->prefix('requests')
@@ -27,7 +32,7 @@ Route::namespace('App\Http\Controllers\API')->middleware('auth:sanctum')->as('ap
         ->prefix('user')
         ->as('user.')
         ->group(function () {
-            //
+            Route::post('/regenerate-friend-code', RegenerateFriendCodeController::class)->name('regenerate-friend-code');
         });
 
 });

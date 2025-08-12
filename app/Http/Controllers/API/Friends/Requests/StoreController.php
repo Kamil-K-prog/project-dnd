@@ -12,7 +12,7 @@ use Illuminate\Http\Request;
 class StoreController extends Controller
 {
     /**
-     * Handle the incoming request.
+     * Создаёт новый запрос в друзья
      */
     public function __invoke(StoreFriendRequest $request)
     {

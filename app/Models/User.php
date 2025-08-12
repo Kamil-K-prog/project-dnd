@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class User extends Authenticatable
 {
@@ -94,6 +96,8 @@ class User extends Authenticatable
         return $this->friends()->where('users.id', $anotherUser->id)->exists();
     }
 
+
+    // Есть ли уже отправленный запрос на дружбу с конкретным пользователем
     public function hasPendingRequestWith(User $anotherUser): bool
     {
         // Ищем один существующий запрос со статусом 'pending' В ЛЮБОМ НАПРАВЛЕНИИ.
@@ -107,5 +111,25 @@ class User extends Authenticatable
                     ->where('recipient_id', $this->id);
             })
             ->exists();
+    }
+
+    // Удаление дружбы (обе записи)
+    public function removeFriend(User $anotherUser): void
+    {
+        DB::transaction(function () use ($anotherUser) {
+            $this->friends()->detach($anotherUser->id);
+            $anotherUser->friends()->detach($this->id);
+        });
+    }
+
+    // Пересоздание кода дружбы
+    public function regenerateFriendCode(): string
+    {
+        do {
+            $newFriendCode = strtoupper(Str::random(8));
+        } while (self::where('friend_code', $newFriendCode)->exists());
+        $this->friend_code = $newFriendCode;
+        $this->save();
+        return $newFriendCode;
     }
 }
