@@ -3,16 +3,29 @@
 namespace App\Http\Controllers\Web\Friends;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\FriendRequestResource;
+use App\Http\Resources\UserResource;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Inertia\Response;
 
 class IndexController extends Controller
 {
-    /**
-     * Handle the incoming request.
-     */
-    public function __invoke(Request $request)
+    public function __invoke(Request $request): Response
     {
-        return Inertia::render('Friends/Index');
+        $user = $request->user();
+
+        // Предзагрузка всех нужных данных
+        $friends = $user->friends()->get();
+        $friendRequests = $user->allFriendshipRequests()
+            ->with(['sender', 'recipient'])
+            ->latest()
+            ->get();
+
+        return Inertia::render('Friends/Index', [
+            'friends' => UserResource::collection($friends),
+            'friendRequests' => FriendRequestResource::collection($friendRequests),
+            'currentUser' => new UserResource($user),
+        ]);
     }
 }

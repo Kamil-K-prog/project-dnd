@@ -1,0 +1,245 @@
+<script setup>
+import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import { Head, usePage } from '@inertiajs/vue3';
+import { ref, computed } from 'vue';
+import { useFriendsApi } from "@/Composables/useFriendsApi.js";
+import { useNotifications } from "@/Composables/useNotifications.js";
+
+const notify = useNotifications();
+// Получаем начальные данные, переданные из контроллера
+const props = defineProps({
+    friends: Array,
+    friendRequests: Array,
+    currentUser: Object,
+});
+
+const page = usePage();
+const api = useFriendsApi();
+
+const addFriendForm = ref({
+    friend_code: '',
+    processing: false,
+});
+
+const handleAddFriend = async () => {
+    if (!addFriendForm.value.friend_code) return;
+    addFriendForm.value.processing = true;
+    try {
+        await api.addFriend(addFriendForm.value.friend_code);
+        notify.add('Запрос в друзья отправлен!', 'success');
+        addFriendForm.value.friend_code = ''; // Очищаем поле
+        await refetchFriendRequests();
+    } catch (error) {
+        notify.add(error.response?.data?.message || 'Не удалось отправить запрос.', 'error');
+    } finally {
+        addFriendForm.value.processing = false;
+    }
+};
+
+const handleRegenerateCode = async () => {
+    try {
+        const response = await api.regenerateCode();
+        onCodeRegenerated(response.data.data.friend_code);
+        notify.add('Код дружбы обновлен!', 'info');
+    } catch {
+        notify.add('Не удалось обновить код.', 'error');
+    }
+};
+
+
+// Реактивные переменные для состояния
+const localFriends = ref(props.friends);
+const localFriendRequests = ref(props.friendRequests);
+const localCurrentUser = ref(props.currentUser);
+const activeTab = ref('friends'); // 'friends' или 'requests'
+
+// --- Методы для обновления состояния ---
+const refetchFriendRequests = async () => {
+    try {
+        const response = await axios.get(route('api.friends.requests.index'));
+        localFriendRequests.value = response.data.data;
+    } catch (error) {
+        console.error("Ошибка при обновлении списка запросов:", error);
+    }
+};
+
+const refetchFriends = async () => {
+    try {
+        const response = await axios.get(route('api.friends.index'));
+        localFriends.value = response.data.data;
+    } catch (error) {
+        console.error("Ошибка при обновлении списка друзей:", error);
+    }
+};
+
+const onFriendRemoved = (friendId) => {
+    localFriends.value = localFriends.value.filter(f => f.id !== friendId);
+};
+
+const onRequestHandled = () => {
+    // Просто обновляем оба списка для простоты
+    refetchFriendRequests();
+    refetchFriends();
+};
+
+const onCodeRegenerated = (newCode) => {
+    localCurrentUser.value.data.friend_code = newCode;
+};
+
+// --- Компонент для отображения одного друга ---
+const FriendListItem = {
+    props: ['friend'],
+    emits: ['removed'],
+    setup(props, { emit }) {
+        const handleRemove = async () => {
+            if (!confirm(`Вы уверены, что хотите удалить ${props.friend.name} из друзей?`)) return;
+            try {
+                await api.removeFriend(props.friend.id);
+                notify.add(`${props.friend.name} удален(а) из друзей.`, 'info');
+                emit('removed', props.friend.id);
+            } catch (error) {
+                notify.add('Не удалось удалить друга. Попробуйте снова.', 'error');
+                console.error(error);
+            }
+        };
+        return { handleRemove };
+    },
+    template: `
+        <div class="flex items-center justify-between p-3 hover:bg-gray-700 rounded-lg transition">
+            <span class="font-medium">{{ friend.name }}</span>
+            <button @click="handleRemove" class="text-sm text-red-400 hover:text-red-300">Удалить</button>
+        </div>
+    `
+};
+
+// --- Компонент для отображения одного запроса ---
+const FriendRequestListItem = {
+    props: ['request'],
+    emits: ['handled'],
+    setup(props, { emit }) {
+        const currentUserId = page.props.auth.user.id;
+        const isIncoming = computed(() => props.request.recipient.id === currentUserId);
+
+        const handleAccept = async () => {
+            await api.acceptRequest(props.request.id);
+            emit('handled');
+        };
+        const handleDecline = async () => {
+            await api.declineRequest(props.request.id);
+            emit('handled');
+        };
+        const handleCancel = async () => {
+            await api.cancelRequest(props.request.id);
+            emit('handled');
+        };
+
+        return { isIncoming, handleAccept, handleDecline, handleCancel };
+    },
+    template: `
+        <div class="flex items-center justify-between p-3 hover:bg-gray-700 rounded-lg transition">
+            <div>
+                <span v-if="isIncoming">Запрос от: <strong>{{ request.sender.name }}</strong></span>
+                <span v-else>Запрос для: <strong>{{ request.recipient.name }}</strong></span>
+            </div>
+            <div class="flex items-center space-x-2">
+                <template v-if="isIncoming">
+                    <button @click="handleAccept" class="text-sm px-3 py-1 bg-green-600 hover:bg-green-500 rounded">Принять</button>
+                    <button @click="handleDecline" class="text-sm px-3 py-1 bg-red-600 hover:bg-red-500 rounded">Отклонить</button>
+                </template>
+                <template v-else>
+                    <button @click="handleCancel" class="text-sm text-gray-400 hover:text-gray-300">Отменить</button>
+                </template>
+            </div>
+        </div>
+    `
+};
+
+</script>
+
+<template>
+    <Head title="Друзья" />
+
+    <AuthenticatedLayout>
+        <div class="py-12">
+            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 text-gray-100">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+                    <!-- Левая колонка: Списки -->
+                    <div class="md:col-span-2 bg-gray-800 shadow-sm sm:rounded-lg p-6">
+                        <!-- Табы -->
+                        <div class="border-b border-gray-700 mb-4">
+                            <nav class="-mb-px flex space-x-6">
+                                <button @click="activeTab = 'friends'" :class="['whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm', activeTab === 'friends' ? 'border-indigo-400 text-indigo-300' : 'border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-500']">
+                                    Мои друзья ({{ localFriends.length }})
+                                </button>
+                                <button @click="activeTab = 'requests'" :class="['whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm', activeTab === 'requests' ? 'border-indigo-400 text-indigo-300' : 'border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-500']">
+                                    Запросы ({{ localFriendRequests.length }})
+                                </button>
+                            </nav>
+                        </div>
+
+                        <!-- Контент табов -->
+                        <div v-if="activeTab === 'friends'">
+                            <div v-if="localFriends.length > 0" class="space-y-2">
+                                <FriendListItem v-for="friend in localFriends" :key="friend.id" :friend="friend.data" @removed="onFriendRemoved"/>
+                            </div>
+                            <p v-else class="text-gray-400">У вас пока нет друзей.</p>
+                        </div>
+
+                        <div v-if="activeTab === 'requests'">
+                            <div v-if="localFriendRequests.length > 0" class="space-y-2">
+                                <FriendRequestListItem v-for="request in localFriendRequests" :key="request.id" :request="request.data" @handled="onRequestHandled" />
+                            </div>
+                            <p v-else class="text-gray-400">Нет активных запросов.</p>
+                        </div>
+                    </div>
+
+                    <!-- Правая колонка: Инструменты -->
+                    <div class="space-y-6">
+                        <!-- Добавить друга -->
+                        <div class="bg-gray-800 shadow-sm sm:rounded-lg p-6">
+                            <h3 class="text-lg font-semibold mb-3">Добавить друга</h3>
+                            <!-- Используем @submit.prevent="handleAddFriend" -->
+                            <form @submit.prevent="handleAddFriend">
+                                <label for="friend_code" class="block text-sm font-medium text-gray-300">Код дружбы</label>
+                                <div class="mt-1 flex rounded-md shadow-sm">
+                                    <!-- Привязываем поле к нашей реактивной переменной с помощью v-model -->
+                                    <input
+                                        v-model="addFriendForm.friend_code"
+                                        type="text"
+                                        name="friend_code"
+                                        id="friend_code"
+                                        class="flex-1 block w-full rounded-none rounded-l-md bg-gray-900 border-gray-700 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                        placeholder="ABC123XYZ"
+                                        :disabled="addFriendForm.processing"
+                                    >
+                                    <!-- Блокируем кнопку на время запроса -->
+                                    <button
+                                        type="submit"
+                                        class="inline-flex items-center px-3 rounded-r-md border border-l-0 border-gray-700 bg-gray-600 text-gray-200 hover:bg-gray-500 disabled:opacity-50"
+                                        :disabled="addFriendForm.processing"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" /></svg>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Мой код дружбы -->
+                        <div class="bg-gray-800 shadow-sm sm:rounded-lg p-6">
+                            <h3 class="text-lg font-semibold mb-3">Мой код дружбы</h3>
+                            <div class="flex items-center justify-between bg-gray-900 p-3 rounded-md">
+                                <span class="text-xl font-mono tracking-widest">{{ localCurrentUser.data.friend_code }}</span>
+                                <!-- Используем @click="handleRegenerateCode" -->
+                                <button @click="handleRegenerateCode" class="text-sm text-indigo-400 hover:text-indigo-300">
+                                    Сгенерировать новый
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </AuthenticatedLayout>
+</template>

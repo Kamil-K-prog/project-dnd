@@ -6,12 +6,14 @@ import DropdownLink from '@/Components/DropdownLink.vue';
 import NavLink from '@/Components/NavLink.vue';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink.vue';
 import { Link } from '@inertiajs/vue3';
+import NotificationContainer from '@/Components/Notifications/NotificationContainer.vue';
 
 const showingNavigationDropdown = ref(false);
 </script>
 
 <template>
     <div>
+        <NotificationContainer />
         <div class="min-h-screen bg-gray-100 dark:bg-gray-900">
             <nav class="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
                 <!-- Primary Navigation Menu -->
@@ -115,6 +117,9 @@ const showingNavigationDropdown = ref(false);
                     <div class="pt-2 pb-3 space-y-1">
                         <ResponsiveNavLink :href="route('dashboard.index')" :active="route().current('dashboard.index')">
                             Дашборд
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink :href="route('friends.index')" :active="route().current('friends.index')">
+                            Друзья
                         </ResponsiveNavLink>
                     </div>
 
