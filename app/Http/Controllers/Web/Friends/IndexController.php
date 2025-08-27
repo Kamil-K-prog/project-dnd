@@ -20,7 +20,7 @@ class IndexController extends Controller
         $friendRequests = $user->allFriendshipRequests()
             ->with(['sender', 'recipient'])
             ->latest()
-            ->get();
+            ->paginate(50, ['*'], 'requestsPage');
 
         return Inertia::render('Friends/Index', [
             'friends' => UserResource::collection($friends),

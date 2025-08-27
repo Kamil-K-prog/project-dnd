@@ -16,7 +16,7 @@ class IndexController extends Controller
         $friendshipRequests = auth()->user()->allFriendshipRequests()
             ->with(['sender', 'recipient'])
             ->latest()
-            ->get();
+            ->paginate(50);
         return FriendRequestResource::collection($friendshipRequests);
     }
 }

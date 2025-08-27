@@ -4,12 +4,14 @@ import { Head, usePage } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
 import { useFriendsApi } from "@/Composables/useFriendsApi.js";
 import { useNotifications } from "@/Composables/useNotifications.js";
+import FriendListItem from '@/Components/Friends/FriendListItem.vue';
+import FriendRequestListItem from '@/Components/Friends/FriendRequestListItem.vue';
 
 const notify = useNotifications();
 // Получаем начальные данные, переданные из контроллера
 const props = defineProps({
-    friends: Array,
-    friendRequests: Array,
+    friends: Object,
+    friendRequests: Object,
     currentUser: Object,
 });
 
@@ -48,8 +50,8 @@ const handleRegenerateCode = async () => {
 
 
 // Реактивные переменные для состояния
-const localFriends = ref(props.friends);
-const localFriendRequests = ref(props.friendRequests);
+const localFriends = ref(props.friends.data);
+const localFriendRequests = ref(props.friendRequests.data);
 const localCurrentUser = ref(props.currentUser);
 const activeTab = ref('friends'); // 'friends' или 'requests'
 
@@ -86,73 +88,6 @@ const onCodeRegenerated = (newCode) => {
     localCurrentUser.value.data.friend_code = newCode;
 };
 
-// --- Компонент для отображения одного друга ---
-const FriendListItem = {
-    props: ['friend'],
-    emits: ['removed'],
-    setup(props, { emit }) {
-        const handleRemove = async () => {
-            if (!confirm(`Вы уверены, что хотите удалить ${props.friend.name} из друзей?`)) return;
-            try {
-                await api.removeFriend(props.friend.id);
-                notify.add(`${props.friend.name} удален(а) из друзей.`, 'info');
-                emit('removed', props.friend.id);
-            } catch (error) {
-                notify.add('Не удалось удалить друга. Попробуйте снова.', 'error');
-                console.error(error);
-            }
-        };
-        return { handleRemove };
-    },
-    template: `
-        <div class="flex items-center justify-between p-3 hover:bg-gray-700 rounded-lg transition">
-            <span class="font-medium">{{ friend.name }}</span>
-            <button @click="handleRemove" class="text-sm text-red-400 hover:text-red-300">Удалить</button>
-        </div>
-    `
-};
-
-// --- Компонент для отображения одного запроса ---
-const FriendRequestListItem = {
-    props: ['request'],
-    emits: ['handled'],
-    setup(props, { emit }) {
-        const currentUserId = page.props.auth.user.id;
-        const isIncoming = computed(() => props.request.recipient.id === currentUserId);
-
-        const handleAccept = async () => {
-            await api.acceptRequest(props.request.id);
-            emit('handled');
-        };
-        const handleDecline = async () => {
-            await api.declineRequest(props.request.id);
-            emit('handled');
-        };
-        const handleCancel = async () => {
-            await api.cancelRequest(props.request.id);
-            emit('handled');
-        };
-
-        return { isIncoming, handleAccept, handleDecline, handleCancel };
-    },
-    template: `
-        <div class="flex items-center justify-between p-3 hover:bg-gray-700 rounded-lg transition">
-            <div>
-                <span v-if="isIncoming">Запрос от: <strong>{{ request.sender.name }}</strong></span>
-                <span v-else>Запрос для: <strong>{{ request.recipient.name }}</strong></span>
-            </div>
-            <div class="flex items-center space-x-2">
-                <template v-if="isIncoming">
-                    <button @click="handleAccept" class="text-sm px-3 py-1 bg-green-600 hover:bg-green-500 rounded">Принять</button>
-                    <button @click="handleDecline" class="text-sm px-3 py-1 bg-red-600 hover:bg-red-500 rounded">Отклонить</button>
-                </template>
-                <template v-else>
-                    <button @click="handleCancel" class="text-sm text-gray-400 hover:text-gray-300">Отменить</button>
-                </template>
-            </div>
-        </div>
-    `
-};
 
 </script>
 
@@ -181,14 +116,16 @@ const FriendRequestListItem = {
                         <!-- Контент табов -->
                         <div v-if="activeTab === 'friends'">
                             <div v-if="localFriends.length > 0" class="space-y-2">
-                                <FriendListItem v-for="friend in localFriends" :key="friend.id" :friend="friend.data" @removed="onFriendRemoved"/>
+                                <FriendListItem v-for="friend in localFriends" :key="friend.id" :friend="friend" @removed="onFriendRemoved"/>
                             </div>
                             <p v-else class="text-gray-400">У вас пока нет друзей.</p>
                         </div>
 
+                        <!-- Внутри таба "Запросы" -->
                         <div v-if="activeTab === 'requests'">
                             <div v-if="localFriendRequests.length > 0" class="space-y-2">
-                                <FriendRequestListItem v-for="request in localFriendRequests" :key="request.id" :request="request.data" @handled="onRequestHandled" />
+                                <!-- Просто используем компонент по имени -->
+                                <FriendRequestListItem v-for="request in localFriendRequests" :key="request.id" :request="request" @handled="onRequestHandled" />
                             </div>
                             <p v-else class="text-gray-400">Нет активных запросов.</p>
                         </div>
