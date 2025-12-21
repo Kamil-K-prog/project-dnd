@@ -88,6 +88,15 @@ const onCodeRegenerated = (newCode) => {
     localCurrentUser.value.data.friend_code = newCode;
 };
 
+const copyFriendCode = async () => {
+    try {
+        await navigator.clipboard.writeText(localCurrentUser.value.data.friend_code);
+        notify.add('Код дружбы скопирован!', 'success', 3000); // Уведомление на 3 секунды
+    } catch (err) {
+        notify.add('Не удалось скопировать код.', 'error');
+        console.error('Failed to copy: ', err);
+    }
+};
 
 </script>
 
@@ -167,10 +176,23 @@ const onCodeRegenerated = (newCode) => {
                             <h3 class="text-lg font-semibold mb-3">Мой код дружбы</h3>
                             <div class="flex items-center justify-between bg-gray-900 p-3 rounded-md">
                                 <span class="text-xl font-mono tracking-widest">{{ localCurrentUser.data.friend_code }}</span>
-                                <!-- Используем @click="handleRegenerateCode" -->
-                                <button @click="handleRegenerateCode" class="text-sm text-indigo-400 hover:text-indigo-300">
-                                    Сгенерировать новый
-                                </button>
+
+                                <!-- Блок с двумя новыми кнопками-иконками -->
+                                <div class="flex items-center space-x-3">
+                                    <!-- Кнопка "Копировать" -->
+                                    <button @click="copyFriendCode" title="Копировать в буфер обмена" class="text-gray-400 hover:text-white transition">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                        </svg>
+                                    </button>
+
+                                    <!-- Кнопка "Сгенерировать новый" -->
+                                    <button @click="handleRegenerateCode" title="Сгенерировать новый код" class="text-gray-400 hover:text-white transition">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h5M20 20v-5h-5M4 4l5 5M20 20l-5-5" />
+                                        </svg>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
